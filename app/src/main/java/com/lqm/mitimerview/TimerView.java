@@ -74,6 +74,8 @@ public class TimerView extends View {
     /* 指针的最大位移 */
     private float mMaxCanvasTranslate;
     private ValueAnimator mShakeAnim;
+    private double aSize;
+    private int mDegrees;
 
 
     public TimerView(Context context) {
@@ -198,9 +200,9 @@ public class TimerView extends View {
         }
 
         //根据旋转的角度mDegrees 占圆的比例计算需要画的线条范围
-        double aSize = Math.asin((double) (mSeekPointX-mRadius)/mSeekRadius); //求出弧度
-        int mDegrees = (int) (RADIAN*aSize); //弧度值转为角度值
         int mLineLength = (int)((((double)mDegrees/360 )* ((double)360/1.8)));
+
+
         for (int i = 0; i < mLineLength; i++) { //亮色圆弧
             canvas.drawLine(
                     getWidth() / 2,
@@ -376,6 +378,11 @@ public class TimerView extends View {
 
         int x = (int) event.getX();
         int y = (int) event.getY();
+        if (x>mRadius+mSeekRadius){
+            x = (int) (mRadius+mSeekRadius);
+        }else if (x < mRadius-mSeekRadius){
+            x = (int) (mRadius - mSeekRadius);
+        }
         boolean isLeft = x - mRadius < 0;
         boolean isTop = y - mRadius < 0;
         if (isLeft && isTop) { //左上
@@ -383,20 +390,38 @@ public class TimerView extends View {
             mSeekPointY = mRadius - (int) Math.sqrt(mSeekRadius * mSeekRadius
                     - (mRadius - x) * (mRadius - x));
 
+            aSize = Math.asin((double) (mRadius-mSeekPointY)/mSeekRadius); //求出弧度
+            mDegrees = (int) (RADIAN*aSize) + 270; //弧度值转为角度值,并且加上在不同象限的度数
+
         } else if (isLeft && !isTop) { //左下
             mSeekPointX = x;
             mSeekPointY = mRadius + (int) Math.sqrt(mSeekRadius * mSeekRadius
                     - (mRadius - x) * (mRadius - x));
+
+            aSize = Math.asin((double) (mRadius - mSeekPointX)/mRadius); //求出弧度
+            mDegrees = (int) (RADIAN*aSize) + 180; //弧度值转为角度值,并且加上在不同象限的度数
+
 
         } else if (!isLeft && isTop) { //右上
             mSeekPointX = x;
             mSeekPointY = mRadius - (int) Math.sqrt(mSeekRadius * mSeekRadius
                     - (x - mRadius) * (x - mRadius));
 
+
+            aSize = Math.asin((double) (mSeekPointX - mRadius)/mRadius); //求出弧度
+            mDegrees = (int) (RADIAN*aSize) + 0; //弧度值转为角度值,并且加上在不同象限的度数
+
+
         } else if (!isLeft && !isTop) { //右下
             mSeekPointX = x;
             mSeekPointY = mRadius + (int) Math.sqrt(mSeekRadius * mSeekRadius
                     - (x - mRadius) * (x - mRadius));
+
+            aSize = Math.asin((double) (mSeekPointY - mRadius)/mRadius); //求出弧度
+            mDegrees = (int) (RADIAN*aSize) + 90; //弧度值转为角度值,并且加上在不同象限的度数
+
+
+
         }
         Log.e("aaa","mSeekPointX："+mSeekPointX+"-----mSeekPointY:"+mSeekPointY);
     }
