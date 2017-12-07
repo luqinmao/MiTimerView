@@ -13,6 +13,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -21,6 +22,9 @@ import android.view.View;
  * desc：仿小米计时器
  */
 public class TimerView extends View {
+
+    //弧度转角度
+    private static final double RADIAN = 180 / Math.PI;
 
     private Paint mLightPaint;
     private Paint mDarkPaint;
@@ -195,7 +199,7 @@ public class TimerView extends View {
 
         //根据旋转的角度mDegrees 占圆的比例计算需要画的线条范围
         double aSize = Math.asin((double) (mSeekPointX-mRadius)/mSeekRadius); //求出弧度
-        int mDegrees = (int) (180/Math.PI*aSize); //弧度值转为角度值
+        int mDegrees = (int) (RADIAN*aSize); //弧度值转为角度值
         int mLineLength = (int)((((double)mDegrees/360 )* ((double)360/1.8)));
         for (int i = 0; i < mLineLength; i++) { //亮色圆弧
             canvas.drawLine(
@@ -236,20 +240,15 @@ public class TimerView extends View {
             case MotionEvent.ACTION_DOWN:
                 mState = mSeekBitmapRect.contains(x,y)?STATE_MOVE:STATE_DEFAULT;
 
-                getCameraRotate(event);
-                getCanvasTranslate(event);
-
+                if (mState == STATE_DEFAULT){
+                    getCameraRotate(event);
+                    getCanvasTranslate(event);
+                }
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (mState == STATE_MOVE){
 
-                    if ((int) event.getRawX() >= mSeekRadius+mRadius){
-                        mSeekPointX = (int) (mSeekRadius+mRadius);
-                    }else{
-                        mSeekPointX = (int) event.getRawX();
-                    }
-                    mSeekPointY = mRadius - (int) Math.sqrt(mSeekRadius*mSeekRadius
-                            -(mSeekPointX-mRadius)*(mSeekPointX-mRadius));
+                    calculateSeekPoint(event);
 
                 }else{
                     //根据手指坐标计算camera应该旋转的大小
@@ -367,5 +366,38 @@ public class TimerView extends View {
             }
         });
         mShakeAnim.start();
+    }
+
+    /**
+     * 计算SeekBitmap的位置
+     * @param event
+     */
+    private void calculateSeekPoint(MotionEvent event) {
+
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        boolean isLeft = x - mRadius < 0;
+        boolean isTop = y - mRadius < 0;
+        if (isLeft && isTop) { //左上
+            mSeekPointX = x;
+            mSeekPointY = mRadius - (int) Math.sqrt(mSeekRadius * mSeekRadius
+                    - (mRadius - x) * (mRadius - x));
+
+        } else if (isLeft && !isTop) { //左下
+            mSeekPointX = x;
+            mSeekPointY = mRadius + (int) Math.sqrt(mSeekRadius * mSeekRadius
+                    - (mRadius - x) * (mRadius - x));
+
+        } else if (!isLeft && isTop) { //右上
+            mSeekPointX = x;
+            mSeekPointY = mRadius - (int) Math.sqrt(mSeekRadius * mSeekRadius
+                    - (x - mRadius) * (x - mRadius));
+
+        } else if (!isLeft && !isTop) { //右下
+            mSeekPointX = x;
+            mSeekPointY = mRadius + (int) Math.sqrt(mSeekRadius * mSeekRadius
+                    - (x - mRadius) * (x - mRadius));
+        }
+        Log.e("aaa","mSeekPointX："+mSeekPointX+"-----mSeekPointY:"+mSeekPointY);
     }
 }
