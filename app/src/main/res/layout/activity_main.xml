@@ -10,8 +10,35 @@
 
 
     <com.lqm.mitimerview.TimerView
+        android:id="@+id/timer_view"
         android:layout_width="match_parent"
         android:layout_height="350dp" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="30dp"
+        >
+
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="开始"
+            android:onClick="onStart"
+            />
+
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="取消"
+            android:onClick="onCancel"
+            />
+
+
+    </LinearLayout>
 
 
 </LinearLayout>

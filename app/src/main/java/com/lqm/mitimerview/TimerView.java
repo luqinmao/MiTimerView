@@ -11,11 +11,14 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Toast;
+
+import static android.R.attr.x;
 
 /**
  * user：lqm
@@ -31,6 +34,7 @@ public class TimerView extends View {
     private int mCenterX;
     private int mCenterY;
     private String mTimeText = "00:00:00";
+    private int mTimeSize;
     private Rect mTextRect;
     private int mRadius;
     private float mScaleLength; //刻度线长度
@@ -77,6 +81,8 @@ public class TimerView extends View {
     private double aSize;
     private int mDegrees;
 
+    private int mCurrentTime;
+    private Handler handler = new Handler();;
 
     public TimerView(Context context) {
         this(context,null);
@@ -201,8 +207,6 @@ public class TimerView extends View {
 
         //根据旋转的角度mDegrees 占圆的比例计算需要画的线条范围
         int mLineLength = (int)((((double)mDegrees/360 )* ((double)360/1.8)));
-
-
         for (int i = 0; i < mLineLength; i++) { //亮色圆弧
             canvas.drawLine(
                     getWidth() / 2,
@@ -231,6 +235,7 @@ public class TimerView extends View {
         );
         canvas.drawBitmap(mSeekBitmap,mSeekBitmapRect.left,mSeekBitmapRect.top,mDarkPaint);
         canvas.restore();
+
     }
 
     @Override
@@ -238,6 +243,7 @@ public class TimerView extends View {
 
         int x = (int) event.getX();
         int y = (int) event.getY();
+
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 mState = mSeekBitmapRect.contains(x,y)?STATE_MOVE:STATE_DEFAULT;
@@ -250,7 +256,9 @@ public class TimerView extends View {
             case MotionEvent.ACTION_MOVE:
                 if (mState == STATE_MOVE){
 
-                    calculateSeekPoint(event);
+                    int xx = (int) event.getX();
+                    int yy = (int) event.getY();
+                    calculateSeekPoint(xx,yy);
 
                 }else{
                     //根据手指坐标计算camera应该旋转的大小
@@ -372,12 +380,9 @@ public class TimerView extends View {
 
     /**
      * 计算SeekBitmap的位置
-     * @param event
      */
-    private void calculateSeekPoint(MotionEvent event) {
+    private void calculateSeekPoint(int x, int y) {
 
-        int x = (int) event.getX();
-        int y = (int) event.getY();
         if (x>mRadius+mSeekRadius){
             x = (int) (mRadius+mSeekRadius);
         }else if (x < mRadius-mSeekRadius){
@@ -398,7 +403,7 @@ public class TimerView extends View {
             mSeekPointY = mRadius + (int) Math.sqrt(mSeekRadius * mSeekRadius
                     - (mRadius - x) * (mRadius - x));
 
-            aSize = Math.asin((double) (mRadius - mSeekPointX)/mRadius); //求出弧度
+            aSize = Math.asin((double) (mRadius - mSeekPointX)/mSeekRadius); //求出弧度
             mDegrees = (int) (RADIAN*aSize) + 180; //弧度值转为角度值,并且加上在不同象限的度数
 
 
@@ -408,21 +413,108 @@ public class TimerView extends View {
                     - (x - mRadius) * (x - mRadius));
 
 
-            aSize = Math.asin((double) (mSeekPointX - mRadius)/mRadius); //求出弧度
+            aSize = Math.asin((double) (mSeekPointX - mRadius)/mSeekRadius); //求出弧度
             mDegrees = (int) (RADIAN*aSize) + 0; //弧度值转为角度值,并且加上在不同象限的度数
-
 
         } else if (!isLeft && !isTop) { //右下
             mSeekPointX = x;
             mSeekPointY = mRadius + (int) Math.sqrt(mSeekRadius * mSeekRadius
                     - (x - mRadius) * (x - mRadius));
 
-            aSize = Math.asin((double) (mSeekPointY - mRadius)/mRadius); //求出弧度
+            aSize = Math.asin((double) (mSeekPointY - mRadius)/mSeekRadius); //求出弧度
             mDegrees = (int) (RADIAN*aSize) + 90; //弧度值转为角度值,并且加上在不同象限的度数
 
+        }
 
+        mTimeSize = (int) ((double)mDegrees/360 * 60);
+        mTimeText = Utils.getTimeString(mTimeSize);
+    }
+
+
+    public void startTimer(int secondtime){ //秒
+        if (secondtime <= 0){
+            Toast.makeText(getContext(),"请输入正确的时间",Toast.LENGTH_SHORT).show();
+            return;
+        }
+        mCurrentTime = secondtime;
+        handler.postDelayed(runnable, 1000);
+
+    }
+
+
+    public void cancelTimer(){
+        mTimeSize = 0;
+        mTimeText = Utils.getTimeString(mTimeSize);
+
+        mSeekPointX = getWidth() / 2;
+        mSeekPointY = (int) (mRadius-mSeekRadius);
+
+        handler.removeCallbacks(runnable);
+
+        invalidate();
+
+    }
+
+
+    Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            mCurrentTime --;
+            mTimeSize = mCurrentTime;
+            mTimeText = Utils.getTimeString(mTimeSize);
+
+
+
+            int dra = (int) ((double)mCurrentTime/60 * 360);
+
+//            temp(dra);
+
+            invalidate();
+
+            if (mCurrentTime == 0){
+                handler.removeCallbacks(runnable);
+            }else{
+                handler.postDelayed(this, 1000);
+            }
 
         }
-        Log.e("aaa","mSeekPointX："+mSeekPointX+"-----mSeekPointY:"+mSeekPointY);
+    };
+
+    private void temp(int dra) {
+        if (dra >= 270 && dra <=360) { //左上
+            mSeekPointX = x;
+            mSeekPointY = mRadius - (int) Math.sqrt(mSeekRadius * mSeekRadius
+                    - (mRadius - x) * (mRadius - x));
+
+            aSize = Math.asin((double) (mRadius-mSeekPointY)/mSeekRadius); //求出弧度
+            mDegrees = (int) (RADIAN*aSize) + 270; //弧度值转为角度值,并且加上在不同象限的度数
+
+        } else if (dra >= 180 && dra <=270) { //左下
+            mSeekPointX = x;
+            mSeekPointY = mRadius + (int) Math.sqrt(mSeekRadius * mSeekRadius
+                    - (mRadius - x) * (mRadius - x));
+
+            aSize = Math.asin((double) (mRadius - mSeekPointX)/mSeekRadius); //求出弧度
+            mDegrees = (int) (RADIAN*aSize) + 180; //弧度值转为角度值,并且加上在不同象限的度数
+
+
+        } else if (dra >= 0 && dra <=90) { //右上
+            mSeekPointX = x;
+            mSeekPointY = mRadius - (int) Math.sqrt(mSeekRadius * mSeekRadius
+                    - (x - mRadius) * (x - mRadius));
+
+
+            aSize = Math.asin((double) (mSeekPointX - mRadius)/mSeekRadius); //求出弧度
+            mDegrees = (int) (RADIAN*aSize) + 0; //弧度值转为角度值,并且加上在不同象限的度数
+
+        } else if (dra >= 90 && dra <=180) { //右下
+            mSeekPointX = x;
+            mSeekPointY = mRadius + (int) Math.sqrt(mSeekRadius * mSeekRadius
+                    - (x - mRadius) * (x - mRadius));
+
+            aSize = Math.asin((double) (mSeekPointY - mRadius)/mSeekRadius); //求出弧度
+            mDegrees = (int) (RADIAN*aSize) + 90; //弧度值转为角度值,并且加上在不同象限的度数
+
+        }
     }
 }
